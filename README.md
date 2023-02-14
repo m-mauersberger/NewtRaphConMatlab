@@ -1,4 +1,4 @@
-# NewtRaphConMatlab
+# newtRaph.m
 
 _A Matlab implementation of the Newton-Raphson method with linear constraints_
 
