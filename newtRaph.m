@@ -2,7 +2,7 @@
 %
 % Mapping of x in R^n --> fun in R^m
 %
-% (c) Michael Mauersberger 2021 (v0.1), 2023 (v0.9)
+% (c) Michael Mauersberger 2021 (v0.1), 2023 (v0.9), LGPL v2.1
 %
 % Newton-Raphson method with constraints. Damping coefficient helps to find
 % a feasible solution. Number of sweep points help to set a new initial
