@@ -22,7 +22,7 @@ function [xVal,fVal,iter,exit] = newtRaph(fun,x0_in,xLow_in,xUpp_in,  ...
 xLow = [];
 % upper bound
 xUpp = [];
-% linearly defined constraints
+% linearly defined constraints in the form A*x <= b
 ALim = [];
 bLim = [];
 % function tolerance value
