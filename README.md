@@ -10,7 +10,7 @@ Newton-Raphson method with constraints for finding function roots.
 Damping coefficient helps to find a feasible solution.
 Number of sweep points help to set a new initial searching point on the axis between the minimum and maximum of the domain.
 Search ends if function tolerance or argument tolerance has been reached.
-Linear constraints are applied via writing back the arguments to the constraint (done by means of QR decomposition and a pseudo-inverse).
+Linear constraints are applied in the form `A*x <= b` via writing back the arguments to the constraint (done by means of QR decomposition and a pseudo-inverse).
 
 
 **References:**
