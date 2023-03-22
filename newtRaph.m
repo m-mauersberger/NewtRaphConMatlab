@@ -2,7 +2,7 @@
 %
 % Mapping of x in R^n --> fun in R^m
 %
-% (c) Michael Mauersberger 2021 (v0.1), 2023 (v0.9), LGPL v2.1
+% (c) Michael Mauersberger 2021 (v0.1), 2023 (v1.0), LGPL v2.1
 %
 % Newton-Raphson method with constraints. Damping coefficient helps to find
 % a feasible solution. Number of sweep points help to set a new initial
@@ -22,7 +22,7 @@ function [xVal,fVal,iter,exit] = newtRaph(fun,x0_in,xLow_in,xUpp_in,  ...
 xLow = [];
 % upper bound
 xUpp = [];
-% linearly defined constraints in the form A*x <= b
+% linearly defined constraints
 ALim = [];
 bLim = [];
 % function tolerance value
@@ -42,6 +42,9 @@ methDiff = 'forw';
 hDiff = 1e-8;
 % number of sweep points on out-of-limit restore
 nSweep = 2;
+
+% number of correction iterations
+nCorr = 10;
 
 if nargin > 1
   if ~isempty(x0_in)
@@ -174,36 +177,38 @@ while true
   % check domain (lower and upper limits)
   lBndTest = true(nx,1);
   uBndTest = true(nx,1);
-  if ~isempty(xLow)
-    lBndTest = (xVal >= xLow);
-  end
-  if ~isempty(xUpp)
-    uBndTest = (xVal <= xUpp);
-  end
-  if all(~lBndTest) || all(~uBndTest)
-    if sum(bordSweep) == nSweep
-      warning('No roots subject to boundaries has been found!')
-      exit = -2;
-      break
+  if ~isempty(xLow) && ~isempty(xUpp)
+    if ~isempty(xLow)
+      lBndTest = (xVal >= xLow);
     end
-    if all(~lBndTest)
-      bordSweep(1) = bordSweep(1) + 1;
-      % ratio of sweep between minimum and maximum point in domain
-      wSweep = (bordSweep(1) - 1) / (nSweep - 1);
-      xVal = (1 - wSweep) * xLow + wSweep * xUpp;
+    if ~isempty(xUpp)
+      uBndTest = (xVal <= xUpp);
     end
-    if all(~uBndTest)
-      bordSweep(2) = bordSweep(2) + 1;
-      % ratio of sweep between minimum and maximum point in domain
-      wSweep = (bordSweep(2) - 1) / (nSweep - 1);
-      xVal = (1 - wSweep) * xUpp + wSweep * xLow;
-    end
-  else
-    if any(~lBndTest)
-      xVal(~lBndTest) = xLow(~lBndTest);
-    end
-    if any(~uBndTest)
-      xVal(~uBndTest) = xUpp(~uBndTest);
+    if all(~lBndTest) || all(~uBndTest)
+      if sum(bordSweep) == nSweep
+        warning('No roots subject to boundaries has been found!')
+        exit = -2;
+        break
+      end
+      if all(~lBndTest)
+        bordSweep(1) = bordSweep(1) + 1;
+        % ratio of sweep between minimum and maximum point in domain
+        wSweep = (bordSweep(1) - 1) / (nSweep - 1);
+        xVal = (1 - wSweep) * xLow + wSweep * xUpp;
+      end
+      if all(~uBndTest)
+        bordSweep(2) = bordSweep(2) + 1;
+        % ratio of sweep between minimum and maximum point in domain
+        wSweep = (bordSweep(2) - 1) / (nSweep - 1);
+        xVal = (1 - wSweep) * xUpp + wSweep * xLow;
+      end
+    else
+      if any(~lBndTest)
+        xVal(~lBndTest) = xLow(~lBndTest);
+      end
+      if any(~uBndTest)
+        xVal(~uBndTest) = xUpp(~uBndTest);
+      end
     end
   end
 
@@ -232,14 +237,14 @@ while true
   if norm(fVal) <= fTol || bxTol || iter >= maxIter
     if iter >= maxIter
       warning('Maximum iteration number of %d reached!',maxIter)
-      exit = -1;
+      exit = 1;
     end
     if norm(fVal) > fTol
       if norm(xVal - xVal_old) <= xTol
         warning('Argument change lower than tolerance!')
       end
       warning('No roots within tolerance has been found!')
-      exit = -2;
+      exit = -1;
     end
     break
   end
@@ -255,7 +260,15 @@ while true
       % small variation by means of random correction value
       xVal = xVal + dx_corr;
       dx_corr = dx_corr * 2;
+      if dx_corr > hDiff * 2^nCorr
+        warning('No roots found due to zero Jacobian!')
+        exit = -2;
+        break
+      end
     end
+  end
+  if exit < 0
+    break
   end
   % solve new step
   if rank(J) < max(size(J))
@@ -280,7 +293,7 @@ function J = jacobian(funLoc,x,h,methDiff)
 
   f = funLoc(x);
   hlim = abs(f) * eps;
-  if h < hlim
+  if h < hlim && hlim < 1 / eps
     warning('Difference step corrected: %g --> %g',h,hlim)
     hcorr = hlim;
   else
@@ -310,7 +323,12 @@ function J = jacobian(funLoc,x,h,methDiff)
         otherwise
           error('Calculation method "%s" of difference quotient unknown!',methDiff)
       end
-      J(i,j) = (f1 - f2) / dh;
+      if any(isnan(f1(:))) || any(isnan(f2(:))) || any(isinf(f1(:))) || any(isinf(f2(:)))
+        % one as standard gradient
+        J(i,j) = 1;
+      else
+        J(i,j) = (f1 - f2) / dh;
+      end
     end
   end
   
