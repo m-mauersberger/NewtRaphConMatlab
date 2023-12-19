@@ -3,7 +3,7 @@
 _A Matlab implementation of the Newton-Raphson method with linear constraints_
 
 
-(c) Michael Mauersberger 2021 (v0.1), 2023 (v1.0), LGPL License v2.1
+(c) Michael Mauersberger 2021 (v0.1), 2023 (v1.0, v1.1), LGPL License v2.1
 
 
 Newton-Raphson method with constraints for finding function roots.
