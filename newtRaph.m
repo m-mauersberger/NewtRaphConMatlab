@@ -1,8 +1,8 @@
-%% Simple Implementation of the Newton-Raphson-Method with constraints
+%% Simple Implementation of the Newton-Raphson-Method with linear constraints
 %
 % Mapping of x in R^n --> fun in R^m
 %
-% (c) Michael Mauersberger 2021 (v0.1), 2023 (v1.0), LGPL v2.1
+% (c) Michael Mauersberger 2021 (v0.1), 2023 (v1.0, v1.1), LGPL v2.1
 %
 % Newton-Raphson method with constraints. Damping coefficient helps to find
 % a feasible solution. Number of sweep points help to set a new initial
@@ -234,12 +234,12 @@ while true
   % if function/argument tolerance or maximum number of iterations has been reached
   % argument tolerance only if values are inside domain
   bxTol = all(lBndTest) && all(uBndTest) && (~isempty(xVal_old) && norm(xVal - xVal_old) <= xTol);
+%   fprintf('Iter. %i, fVal = %e (%e)\n',iter,norm(fVal),fTol)
   if norm(fVal) <= fTol || bxTol || iter >= maxIter
     if iter >= maxIter
       warning('Maximum iteration number of %d reached!',maxIter)
       exit = 1;
-    end
-    if norm(fVal) > fTol
+    elseif norm(fVal) > fTol
       if norm(xVal - xVal_old) <= xTol
         warning('Argument change lower than tolerance!')
       end
@@ -266,6 +266,11 @@ while true
         break
       end
     end
+  end
+  % Where do invalid values come from since line 331?
+  if any(isinf(J(:))) || any(isnan(J(:)))
+    warning('Jacobian contains invalid values!')
+    exit = -3;
   end
   if exit < 0
     break
@@ -323,7 +328,8 @@ function J = jacobian(funLoc,x,h,methDiff)
         otherwise
           error('Calculation method "%s" of difference quotient unknown!',methDiff)
       end
-      if any(isnan(f1(:))) || any(isnan(f2(:))) || any(isinf(f1(:))) || any(isinf(f2(:)))
+      if any(isnan(f1(:))) || any(isnan(f2(:))) || any(isinf(f1(:))) || any(isinf(f2(:)))  ...
+          || abs(dh) < eps || isnan(dh)
         % one as standard gradient
         J(i,j) = 1;
       else
